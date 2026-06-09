@@ -1,0 +1,62 @@
+<!-- START OF FILE templates/sections/dashboard.html -->
+<div class="grid grid-cols-2 gap-4 mb-6">
+    <div class="bg-[#1B1E31]/40 border border-white/5 p-6 rounded-2xl text-center shadow-lg relative overflow-hidden glass-card">
+        <i class="fas fa-crosshairs absolute right-[-10px] bottom-[-10px] text-6xl text-white/5"></i>
+        <p class="text-gray-400 text-xs font-black uppercase tracking-widest mb-1 relative z-10">Total Targets</p>
+        <h2 id="total-targets" class="text-4xl font-black text-yellow-400 relative z-10 drop-shadow-md">0</h2>
+    </div>
+    <div class="bg-[#1B1E31]/40 border border-white/5 p-6 rounded-2xl text-center shadow-lg relative overflow-hidden glass-card">
+        <i class="fas fa-robot absolute right-[-10px] bottom-[-10px] text-6xl text-white/5"></i>
+        <p class="text-gray-400 text-xs font-black uppercase tracking-widest mb-1 relative z-10">Active Bots</p>
+        <h2 id="total-bots" class="text-4xl font-black text-emerald-400 relative z-10 drop-shadow-md">0</h2>
+    </div>
+</div>
+
+<script>
+    window.safeRunSection('dashboard', function() {
+        window.fetchDashboard = async function() {
+            try {
+                let res = await fetch('/api/dashboard'); 
+                if (res.status === 401) { 
+                    window.location.reload(); 
+                    return; 
+                }
+                let data = await res.json();
+                
+                document.getElementById('total-targets').innerText = data.total_targets || 0;
+                document.getElementById('total-bots').innerText = data.total_bots || 0;
+                
+                if(document.getElementById('p-usage')) {
+                    document.getElementById('p-usage').innerText = data.user_usage;
+                }
+                if(document.getElementById('header-added-limit')) {
+                    document.getElementById('header-added-limit').innerText = data.user_usage;
+                }
+
+                let consoleHtml = '';
+                (data.bots || []).forEach(b => {
+                    let sColor = b.status.toLowerCase() === 'offline' ? 'text-rose-500' : 'text-emerald-500';
+                    consoleHtml += `<div class="py-1.5 border-b border-white/5">Bot ${b.no} : <span class="text-gray-400 font-bold">${b.name}</span> : <span class="font-mono text-gray-500">UID ${b.uid}</span> : <span class="${sColor} font-black">${b.status}</span></div>`;
+                });
+                
+                const consoleBox = document.getElementById('console-box');
+                if (consoleBox) {
+                    consoleBox.innerHTML = consoleHtml || '<div class="text-gray-600 p-4">No bots online.</div>';
+                }
+            } catch(e) {
+                console.error("Dashboard poll failed:", e);
+            }
+        };
+
+        window.addEventListener('tabSwitched', function(e) {
+            if (e.detail.tab === 'dashboard') {
+                fetchDashboard();
+            }
+        });
+
+        // Start Dashboard Polling
+        fetchDashboard();
+        setInterval(fetchDashboard, 5000);
+    });
+</script>
+<!-- END OF FILE templates/sections/dashboard.html -->

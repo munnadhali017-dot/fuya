@@ -1,0 +1,45 @@
+<!-- START OF FILE templates/sections/spam.html -->
+<div class="bg-[#1B1E31]/40 border border-white/5 p-4 rounded-2xl shadow-lg">
+    <h2 class="text-xl font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-bolt text-yellow-400"></i> Active Spam Targets</h2>
+    <div id="spam-container" class="space-y-4">
+        <div class="p-4 text-center text-gray-500">Loading...</div>
+    </div>
+</div>
+
+<script>
+    window.safeRunSection('spam', function() {
+        window.fetchSpam = async function() {
+            try {
+                let res = await fetch('/api/spam'); 
+                if (res.status === 401) { window.location.reload(); return; }
+                let data = await res.json(); 
+                let html = '';
+                
+                for(let bot in data) {
+                    html += `
+                    <div class="bg-[#11131a]/80 backdrop-blur-md border border-white/5 rounded-2xl p-5">
+                        <h4 class="text-emerald-400 font-black mb-3 flex items-center gap-2"><i class="fas fa-robot"></i> Bot List ${bot} <span class="text-gray-500">(${data[bot].length} Targets)</span></h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            ${data[bot].map(t => `<div class="bg-[#1b1e2b]/60 p-3 rounded-xl border border-white/5 flex justify-between items-center cursor-pointer hover:border-yellow-400 transition" onclick="viewGenericProfile('${t.uid}', '${t.source}')"><div><div class="text-white font-bold text-sm font-mono">${t.uid}</div><div class="text-[9px] text-gray-500 mt-1 uppercase"><i class="fas fa-link"></i> ${t.source}</div></div><i class="fas fa-chevron-right text-gray-600 text-xs"></i></div>`).join('')}
+                            ${data[bot].length === 0 ? '<div class="text-gray-500 text-xs italic col-span-full">No targets assigned to this bot.</div>' : ''}
+                        </div>
+                    </div>`;
+                }
+                
+                document.getElementById('spam-container').innerHTML = html || '<div class="p-4 text-center text-gray-500">No spam targets available.</div>';
+            } catch(e) {
+                console.error("fetchSpam failed:", e);
+            }
+        };
+
+        window.addEventListener('tabSwitched', function(e) {
+            if (e.detail.tab === 'spam') {
+                fetchSpam();
+            }
+        });
+
+        // Initialize Spam list
+        fetchSpam();
+    });
+</script>
+<!-- END OF FILE templates/sections/spam.html -->

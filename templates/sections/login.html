@@ -1,0 +1,46 @@
+<div class="min-h-screen flex items-center justify-center bg-[#0b0d17] p-4 relative overflow-hidden">
+    <!-- Background Decor -->
+    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-yellow-500/20 rounded-full blur-[100px]"></div>
+    
+    <div class="bg-[#1b1e2b] p-8 rounded-3xl shadow-2xl border border-gray-800 w-full max-w-md relative z-10">
+        <div class="text-center mb-8">
+            <h1 class="font-['Orbitron'] font-black text-4xl text-yellow-400 tracking-widest drop-shadow-md mb-2">OUT OF LAW</h1>
+            <p class="text-gray-400 text-sm font-bold uppercase tracking-widest">Secure Terminal</p>
+        </div>
+
+        {% if error %}
+        <div class="bg-rose-500/10 border border-rose-500/50 text-rose-500 text-center p-3 rounded-xl mb-6 text-sm font-bold">
+            <i class="fas fa-exclamation-triangle"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" action="/login" class="space-y-5">
+            <div>
+                <label class="block text-gray-500 text-xs font-black uppercase tracking-widest mb-2 ml-1">Username</label>
+                <div class="relative">
+                    <i class="fas fa-user absolute left-4 top-4 text-gray-500"></i>
+                    <input type="text" name="username" required class="w-full bg-[#11131a] border border-gray-700 text-white rounded-xl py-3 pl-10 pr-4 outline-none focus:border-yellow-400 transition placeholder-gray-600 font-bold" placeholder="Enter Admin Username">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-gray-500 text-xs font-black uppercase tracking-widest mb-2 ml-1">Password</label>
+                <div class="relative">
+                    <i class="fas fa-lock absolute left-4 top-4 text-gray-500"></i>
+                    <input type="password" name="password" required class="w-full bg-[#11131a] border border-gray-700 text-white rounded-xl py-3 pl-10 pr-4 outline-none focus:border-yellow-400 transition placeholder-gray-600 font-bold" placeholder="Enter Password">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between mt-4 ml-1">
+                <label class="flex items-center gap-2 cursor-pointer group">
+                    <input type="checkbox" name="remember" value="true" class="appearance-none w-5 h-5 rounded border border-gray-600 checked:bg-yellow-400 checked:border-yellow-400 relative cursor-pointer after:content-['✔'] after:absolute after:text-black after:text-[10px] after:left-[3px] after:top-[1px] after:opacity-0 checked:after:opacity-100 transition-all">
+                    <span class="text-gray-400 text-xs font-bold uppercase tracking-wider group-hover:text-white transition">Remember Me</span>
+                </label>
+            </div>
+
+            <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-4 rounded-xl shadow-[0_0_15px_rgba(234,179,8,0.3)] transition-all uppercase tracking-widest mt-4">
+                LOGIN TO SYSTEM
+            </button>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,274 @@
+<!-- START OF FILE templates/sections/add_target_form.html -->
+<div id="add-modal" class="fixed inset-0 hidden items-center justify-center bg-black/95 backdrop-blur-sm z-[100]">
+    <div class="bg-[#0f111a] border border-white/10 w-full max-w-[26rem] rounded-[2.5rem] shadow-2xl relative overflow-hidden p-6 max-h-[95vh] overflow-y-auto mx-4 font-sans">
+        
+        <!-- Beautiful 3D Glass Scanner Loading Overlay -->
+        <div id="check-loading-overlay" class="hidden absolute inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center z-50 rounded-[2.5rem] transition-all duration-300">
+            <div class="relative w-20 h-20 mb-4 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border-4 border-yellow-500/10"></div>
+                <div class="absolute inset-0 rounded-full border-4 border-t-yellow-400 border-r-yellow-400 animate-spin"></div>
+                <i class="fas fa-crosshairs text-yellow-400 text-3xl animate-pulse"></i>
+            </div>
+            <p class="text-sm font-['Orbitron'] font-black text-white uppercase tracking-widest animate-pulse">SCANNING DATABASE...</p>
+            <p class="text-[10px] text-gray-500 font-bold uppercase mt-1">Connecting to tracking server...</p>
+        </div>
+
+        <!-- Close Button -->
+        <button onclick="closeAddTargetModal()" class="absolute top-5 right-5 text-gray-500 hover:text-white bg-gray-800/40 p-2 rounded-full transition duration-300 z-20"><i class="fas fa-times"></i></button>
+        <h3 class="text-xl font-['Orbitron'] font-black text-white uppercase tracking-widest mb-6 glow-text text-center animate-pulse" id="add-target-title">ADD NEW TARGET</h3>
+
+        <div class="space-y-4">
+            <!-- Inputs (These will be hidden completely after checked!) -->
+            <div id="add-target-inputs" class="space-y-4">
+                <select id="t-duration" class="w-full bg-[#161925]/90 border border-white/10 rounded-xl p-3.5 text-sm font-bold text-yellow-400 outline-none focus:border-yellow-400/50 transition">
+                    <option value="1 day">Duration: 1 Day</option>
+                    <option value="7 day">Duration: 7 Days</option>
+                    <option value="30 day">Duration: 30 Days</option>
+                    <option value="permanent">Duration: Permanent</option>
+                </select>
+
+                <input type="number" id="t-uid" placeholder="Enter Target UID" class="w-full bg-[#161925]/90 border border-white/10 rounded-xl p-3.5 text-base font-bold text-white outline-none focus:border-yellow-400/50 placeholder-gray-600 transition">
+                <input type="text" id="t-reason" placeholder="Enter Reason (Optional)" class="w-full bg-[#161925]/90 border border-white/10 rounded-xl p-3.5 text-sm font-bold text-white outline-none focus:border-yellow-400/50 placeholder-gray-600 transition">
+            </div>
+            
+            <div id="t-existing-warning" class="hidden items-center justify-between bg-rose-500/10 border border-rose-500/20 rounded-xl p-3">
+                <span class="text-rose-500 text-xs font-black uppercase tracking-widest flex items-center gap-2"><i class="fas fa-exclamation-triangle"></i> Target Already Active</span>
+                <button id="t-existing-view-btn" class="bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-black p-2 rounded-lg transition-colors shadow-md"><i class="fas fa-eye text-sm"></i></button>
+            </div>
+
+            <!-- Free Fire Live Preview Card (Premium Glowing Circular Design) -->
+            <div id="t-ff-preview" class="hidden relative bg-[#161825]/90 border border-yellow-500/30 rounded-3xl mt-2">
+                
+                <!-- Position fix with rounded headers -->
+                <div class="h-28 w-full relative border-b border-white/5 bg-[#1a1d2e] rounded-t-3xl">
+                    <img id="ff-banner" src="" class="w-full h-full object-cover opacity-80 rounded-t-3xl">
+                    <div class="absolute top-3 right-3 text-white text-[10px] font-black flex items-center gap-1.5 z-10 bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-white/5 shadow-md">
+                        <i class="fas fa-thumbs-up text-yellow-400"></i> <span id="ff-likes">0</span>
+                    </div>
+                    
+                    <!-- Floating Rounded Square Avatar Frame - Unclipped Level Badge -->
+                    <div class="absolute bottom-[-24px] left-1/2 transform -translate-x-1/2 z-20">
+                        <div class="w-20 h-20 rounded-2xl bg-[#11131a] p-1 border-[3px] border-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.45)] relative">
+                            <!-- Rounded frame ONLY on image wrapper -->
+                            <div class="w-full h-full rounded-2xl overflow-hidden">
+                                <img id="ff-avatar" src="" class="w-full h-full object-cover">
+                            </div>
+                            <!-- Float level badge safely without clipping -->
+                            <span class="absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 bg-yellow-400 text-black font-black text-[9px] px-2 py-0.5 rounded-full shadow-lg whitespace-nowrap z-30">
+                                Lv.<span id="ff-level">0</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Profile Details Info Area -->
+                <div class="pt-8 px-6 pb-6 bg-[#0f111a]/95 text-center rounded-b-3xl">
+                    <h4 id="ff-name" class="text-xl font-black text-white game-font truncate max-w-[280px] mx-auto drop-shadow-md">꧁ˢʰᵃᵒʷ➳2.0</h4>
+                    <div class="text-yellow-400/90 text-xs font-mono font-bold mt-1 tracking-widest bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 rounded-xl inline-block shadow-inner cursor-pointer" onclick="window.copyToClipboard(this.innerText.split(' ')[1], this)">
+                        UID: <span id="ff-uid-display">11825435633</span>
+                    </div>
+
+                    <!-- Clean and Well-spaced Grid Layout -->
+                    <div class="grid grid-cols-2 gap-y-3.5 text-xs text-gray-400 font-bold px-1 mt-6 border-t border-white/5 pt-4">
+                        <div class="flex items-center gap-2 text-gray-500"><i class="fas fa-shield-alt text-yellow-500/70 text-sm"></i> Guild Name</div>
+                        <div class="text-right text-yellow-400 game-font text-xs truncate" id="ff-guild">No Guild</div>
+                        
+                        <div class="flex items-center gap-2 text-gray-500"><i class="fas fa-fingerprint text-yellow-500/70 text-sm"></i> Guild ID</div>
+                        <div class="text-right text-white font-mono text-xs cursor-pointer hover:text-yellow-400 truncate" id="ff-guild-id" onclick="window.copyToClipboard(this.innerText, this)">N/A</div>
+
+                        <div class="flex items-center gap-2 text-gray-500"><i class="fas fa-crown text-cyan-500/70 text-sm"></i> Leader</div>
+                        <div class="text-right text-cyan-400 font-mono cursor-pointer hover:underline truncate" id="ff-leader" onclick="viewGenericProfile(this.innerText, 'Leader Profile')">N/A</div>
+                        
+                        <div class="flex items-center gap-2 text-gray-500"><i class="fas fa-globe text-indigo-500/70 text-sm"></i> Region</div>
+                        <div class="text-right text-gray-300" id="ff-region">N/A</div>
+                        
+                        <div class="flex items-center gap-2 text-gray-500"><i class="fas fa-calendar-alt text-emerald-500/70 text-sm"></i> Created</div>
+                        <div class="text-right text-gray-300 font-mono text-[10px]" id="ff-create">N/A</div>
+                        
+                        <div class="flex items-center gap-2 text-gray-500"><i class="fas fa-clock text-rose-500/70 text-sm"></i> Last Login</div>
+                        <div class="text-right text-emerald-400 font-mono text-[10px]" id="ff-login">N/A</div>
+                    </div>
+
+                    <!-- In-game colorful signature/bio -->
+                    <div id="ff-signature" class="mt-5 bg-black/60 p-3.5 rounded-2xl text-xs font-bold border-l-2 border-yellow-400 text-center ff-sig-font w-full break-words whitespace-normal overflow-hidden shadow-inner text-gray-300 border border-white/5">
+                        No Signature
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons Footer -->
+            <div class="mt-4" id="add-modal-footer">
+                <!-- Check Button (Initial State) -->
+                <button id="btn-check-uid" onclick="checkUIDProfile()" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-4 rounded-xl text-sm uppercase tracking-wider transition duration-300 shadow-[0_4px_15px_rgba(234,179,8,0.2)]">
+                    Check Profile
+                </button>
+
+                <!-- Dual Action Buttons (After Check State) -->
+                <div id="add-modal-actions" class="hidden flex gap-4">
+                    <button onclick="resetAddTargetModal()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest transition duration-300 border border-white/5">
+                        Cancel
+                    </button>
+                    <button id="btn-attack-target" onclick="submitTargetData()" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest transition duration-300 shadow-[0_4px_15px_rgba(16,185,129,0.25)]">
+                        Attack Target
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.openAddTargetModal = function() {
+        resetAddTargetModal();
+        document.getElementById('add-modal').classList.replace('hidden', 'flex');
+    };
+
+    window.closeAddTargetModal = function() {
+        document.getElementById('add-modal').classList.replace('flex', 'hidden');
+    };
+
+    window.resetAddTargetModal = function() {
+        document.getElementById('t-uid').value = '';
+        document.getElementById('t-reason').value = '';
+        document.getElementById('t-uid').disabled = false;
+        document.getElementById('t-duration').disabled = false;
+        
+        // Show inputs again
+        document.getElementById('add-target-inputs').classList.remove('hidden');
+        
+        document.getElementById('t-ff-preview').classList.add('hidden');
+        document.getElementById('t-existing-warning').classList.replace('flex', 'hidden');
+        
+        document.getElementById('btn-check-uid').classList.remove('hidden');
+        document.getElementById('btn-check-uid').disabled = false;
+        document.getElementById('btn-check-uid').innerText = "Check Profile";
+        
+        document.getElementById('add-modal-actions').classList.replace('flex', 'hidden');
+        document.getElementById('check-loading-overlay').classList.add('hidden');
+    };
+
+    window.checkUIDProfile = async function() {
+        const uid = document.getElementById('t-uid').value.trim();
+        if(!uid || uid.length < 5) {
+            showPopup("Invalid UID", "Please enter a valid Player UID.", "error");
+            return;
+        }
+
+        const loader = document.getElementById('check-loading-overlay');
+        const btnCheck = document.getElementById('btn-check-uid');
+        
+        // Show scanning animation
+        loader.classList.remove('hidden');
+        btnCheck.disabled = true;
+
+        // Dynamic slight delay for highly tactile user experience
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const targetsData = window.allTargets || [];
+        let existingTarget = targetsData.find(t => String(t.uid) === String(uid));
+
+        try {
+            // CRITICAL FIX: Real Garena Scraper API triggers for real target checks
+            let res = await fetch('/api/fetch_profile', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({uid: uid, save: false, force: true}) 
+            });
+            
+            if (!res.ok) {
+                throw new Error(`HTTP Error Status: ${res.status}`);
+            }
+
+            let d = await res.json();
+            
+            // Hide loading indicator
+            loader.classList.add('hidden');
+
+            if (d.success) {
+                const basic = d.data.basicInfo || {};
+                const clan = d.data.clanBasicInfo || {};
+                const social = d.data.socialInfo || {};
+                
+                document.getElementById('ff-uid-display').innerText = uid;
+                document.getElementById('ff-name').innerText = basic.nickname || 'Unknown';
+                document.getElementById('ff-level').innerText = basic.level || 0;
+                document.getElementById('ff-likes').innerText = basic.liked || 0;
+                document.getElementById('ff-guild').innerText = clan.clanName || "No Guild";
+                document.getElementById('ff-guild-id').innerText = clan.clanId || "N/A";
+                document.getElementById('ff-leader').innerText = clan.captainId || "N/A";
+                document.getElementById('ff-region').innerText = basic.region || 'N/A';
+                document.getElementById('ff-create').innerText = formatDateTime(basic.createAt);
+                document.getElementById('ff-login').innerText = formatDateTime(basic.lastLoginAt);
+                document.getElementById('ff-signature').innerHTML = parseFFSignature(social.signature || "No Bio Available");
+
+                let hPicId = basic.headPic || "902000003";
+                let bannerId = basic.bannerId || "901000001";
+                document.getElementById('ff-avatar').src = `https://cdn.jsdelivr.net/gh/ShahGCreator/icon@main/PNG/${hPicId}.png`;
+                document.getElementById('ff-banner').src = `https://cdn.jsdelivr.net/gh/ShahGCreator/icon@main/PNG/${bannerId}.png`;
+                
+                // Hides input fields completely when profile card is showing
+                document.getElementById('add-target-inputs').classList.add('hidden');
+
+                document.getElementById('t-ff-preview').classList.remove('hidden');
+                document.getElementById('t-uid').disabled = true;
+                document.getElementById('t-duration').disabled = true;
+                btnCheck.classList.add('hidden');
+
+                if (existingTarget) {
+                    document.getElementById('t-existing-warning').classList.replace('hidden', 'flex');
+                    document.getElementById('t-existing-view-btn').onclick = () => {
+                        closeAddTargetModal();
+                        viewGenericProfile(existingTarget.uid, "Existing Target");
+                    };
+                } else {
+                    document.getElementById('add-modal-actions').classList.replace('hidden', 'flex');
+                }
+            } else {
+                showPopup("UID Not Found", d.msg || "Free fire server api error.", "error");
+                btnCheck.disabled = false;
+                btnCheck.innerText = "Check Profile";
+            }
+        } catch(e) {
+            loader.classList.add('hidden');
+            console.error("DEBUG API ERROR DETAILS:", e);
+            showPopup("API Network Error", `Could not retrieve data: ${e.message}`, "error");
+            btnCheck.disabled = false;
+            btnCheck.innerText = "Check Profile";
+        }
+    };
+
+    window.submitTargetData = async function() {
+        const uid = document.getElementById('t-uid').value.trim();
+        const duration = document.getElementById('t-duration').value;
+        const reason = document.getElementById('t-reason').value.trim();
+        
+        let actionsFooter = document.getElementById('add-modal-actions');
+        actionsFooter.classList.replace('flex', 'hidden');
+
+        try {
+            let res = await fetch('/api/target/add', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({uid, duration, reason}) 
+            });
+            let data = await res.json();
+            if (data.success) { 
+                closeAddTargetModal();
+                showPopup("Spam Active", data.msg || "Spam queue initiated successfully.", "success");
+                if (typeof fetchTargets === 'function') {
+                    fetchTargets(); 
+                }
+                if (typeof fetchDashboard === 'function') {
+                    fetchDashboard();
+                }
+            } else {
+                showPopup("Error Activating", data.msg, "error");
+                actionsFooter.classList.replace('hidden', 'flex');
+            }
+        } catch(e) { 
+            showPopup("Network Error", "Could not process request.", "error"); 
+            actionsFooter.classList.replace('hidden', 'flex');
+        }
+    };
+</script>
+<!-- END OF FILE templates/sections/add_target_form.html -->

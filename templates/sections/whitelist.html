@@ -1,0 +1,102 @@
+<!-- START OF FILE templates/sections/whitelist.html -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Players -->
+    <div class="bg-[#1B1E31]/40 border border-white/5 p-4 rounded-2xl shadow-lg flex flex-col h-[500px]">
+        <h2 class="text-xl font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-user-shield text-yellow-400"></i> Player Whitelist</h2>
+        <div class="flex gap-2 mb-4">
+            <input type="number" id="wl-player-input" placeholder="Enter Player UID" class="flex-1 bg-[#11131a]/80 border border-white/10 text-white rounded-lg px-3 py-2 outline-none focus:border-yellow-400 text-sm font-bold">
+            <button onclick="addWhitelist('players')" class="bg-emerald-500 hover:bg-emerald-400 text-white font-bold px-4 rounded-lg transition"><i class="fas fa-plus"></i></button>
+        </div>
+        <div id="wl-players-list" class="overflow-y-auto flex-1 space-y-2 pr-2">
+            <div class="text-center text-gray-500 py-4">Loading...</div>
+        </div>
+    </div>
+    
+    <!-- Guilds -->
+    <div class="bg-[#1B1E31]/40 border border-white/5 p-4 rounded-2xl shadow-lg flex flex-col h-[500px]">
+        <h2 class="text-xl font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-shield-alt text-yellow-400"></i> Guild Whitelist</h2>
+        <div class="flex gap-2 mb-4">
+            <input type="number" id="wl-guild-input" placeholder="Enter Guild ID" class="flex-1 bg-[#11131a]/80 border border-white/10 text-white rounded-lg px-3 py-2 outline-none focus:border-yellow-400 text-sm font-bold">
+            <button onclick="addWhitelist('guilds')" class="bg-emerald-500 hover:bg-emerald-400 text-white font-bold px-4 rounded-lg transition"><i class="fas fa-plus"></i></button>
+        </div>
+        <div id="wl-guilds-list" class="overflow-y-auto flex-1 space-y-2 pr-2">
+            <div class="text-center text-gray-500 py-4">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.safeRunSection('whitelist', function() {
+        window.fetchWhitelist = async function() {
+            try {
+                let res = await fetch('/api/whitelist'); 
+                if (res.status === 401) { window.location.reload(); return; }
+                let data = await res.json();
+                
+                document.getElementById('wl-players-list').innerHTML = data.players.map(p => `
+                    <div class="flex justify-between items-center bg-[#11131a]/80 border border-white/5 p-3 rounded-xl">
+                        <span class="text-white font-bold cursor-pointer hover:text-yellow-400 transition font-mono text-sm" onclick="viewGenericProfile('${p}', 'Whitelisted Player')">
+                            <i class="fas fa-user text-gray-500 mr-2"></i> ${p}
+                        </span>
+                        <button onclick="removeWhitelist('players', '${p}')" class="text-rose-500 hover:text-rose-400 transition">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>`).join('') || '<div class="text-gray-500 text-center py-4 text-sm italic">No players whitelisted.</div>';
+                
+                document.getElementById('wl-guilds-list').innerHTML = data.guilds.map(g => `
+                    <div class="flex justify-between items-center bg-[#11131a]/80 border border-white/5 p-3 rounded-xl">
+                        <span class="text-white font-bold font-mono text-sm">
+                            <i class="fas fa-shield-alt text-gray-500 mr-2"></i> ${g}
+                        </span>
+                        <button onclick="removeWhitelist('guilds', '${g}')" class="text-rose-500 hover:text-rose-400 transition">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>`).join('') || '<div class="text-gray-500 text-center py-4 text-sm italic">No guilds whitelisted.</div>';
+            } catch(e) {
+                console.error("fetchWhitelist failed:", e);
+            }
+        };
+
+        window.addWhitelist = async function(type) { 
+            let inputEl = document.getElementById(type === 'players' ? 'wl-player-input' : 'wl-guild-input'); 
+            if(!inputEl) return;
+            let id = inputEl.value.trim(); 
+            if(!id) return; 
+            
+            try {
+                await fetch('/api/whitelist/add', { 
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'}, 
+                    body: JSON.stringify({type, id}) 
+                }); 
+                inputEl.value = ''; 
+                fetchWhitelist(); 
+            } catch(e) {
+                console.error("Error adding whitelist item:", e);
+            }
+        };
+
+        window.removeWhitelist = async function(type, id) { 
+            try {
+                await fetch('/api/whitelist/remove', { 
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'}, 
+                    body: JSON.stringify({type, id}) 
+                }); 
+                fetchWhitelist(); 
+            } catch(e) {
+                console.error("Error removing whitelist item:", e);
+            }
+        };
+
+        window.addEventListener('tabSwitched', function(e) {
+            if (e.detail.tab === 'whitelist') {
+                fetchWhitelist();
+            }
+        });
+
+        // Initialize Whitelists
+        fetchWhitelist();
+    });
+</script>
+<!-- END OF FILE templates/sections/whitelist.html -->

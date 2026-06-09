@@ -1,0 +1,311 @@
+<!-- START OF FILE templates/sections/targets.html -->
+<div class="flex flex-col md:flex-row justify-between items-start bg-[#1B1E31]/40 border border-white/5 backdrop-blur-md p-5 rounded-3xl shadow-lg gap-4 mb-4 relative">
+    <div class="w-full md:w-2/3 flex flex-col gap-3">
+        <div class="relative w-full">
+            <i class="fas fa-search absolute left-4 top-4 text-gray-500"></i>
+            <input type="text" id="searchInput" placeholder="Search UID or Name..." onkeyup="targetRenderLimit=20; renderTargets()" class="w-full bg-[#0b0d17]/80 border border-white/10 text-white rounded-xl py-3 pl-11 pr-4 outline-none focus:border-yellow-400/70 transition font-bold shadow-inner">
+        </div>
+        <div class="relative w-full max-w-sm">
+            <button onclick="document.getElementById('userFilterDropdown').classList.toggle('hidden')" class="w-full bg-[#11131a]/80 border border-white/10 hover:border-yellow-400 text-gray-400 rounded-xl px-4 py-3 text-sm font-bold flex justify-between items-center transition shadow-inner">
+                <span><i class="fas fa-filter mr-2 text-yellow-400"></i> Target by User: <span id="userFilterText" class="text-white ml-1 font-black">All Users</span></span>
+                <i class="fas fa-chevron-down text-xs"></i>
+            </button>
+            <div id="userFilterDropdown" class="hidden absolute left-0 right-0 top-full mt-2 bg-[#1b1e2b]/95 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+                <div class="max-h-48 overflow-y-auto" id="userFilterList"></div>
+            </div>
+        </div>
+    </div>
+    <button onclick="openAddTargetModal()" class="w-full md:w-1/3 bg-emerald-500 hover:bg-emerald-400 text-white font-black px-6 py-3.5 rounded-2xl shadow-[0_4px_20px_rgba(16,185,129,0.3)] hover:shadow-[0_4px_25px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 transition-all duration-300 uppercase tracking-wider h-[52px] md:mt-0">
+        + ADD TARGET
+    </button>
+</div>
+
+<!-- Collapse Trigger for Users Summary -->
+<button onclick="toggleUserSummary()" class="text-xs font-black text-gray-400 hover:text-yellow-400 transition flex items-center gap-2 mb-4 bg-[#11131a]/60 px-4 py-2.5 rounded-xl border border-white/5 shadow">
+    <i id="summary-toggle-icon" class="fas fa-chevron-down"></i> <span id="summary-toggle-text">Show Users Target Summary</span>
+</button>
+
+<div id="target-summary-container" class="hidden bg-[#1B1E31]/40 border border-white/5 p-4 rounded-2xl shadow-lg mb-6 flex flex-wrap gap-3">
+    <div class="text-sm font-black text-gray-500 w-full text-center">Loading User Usage Summary...</div>
+</div>
+
+<div class="flex flex-col gap-4">
+    <div id="targets-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    <button id="targets-load-more" onclick="loadMoreTargets()" class="hidden w-full text-center text-xs font-black text-yellow-500 bg-[#1B1E31]/30 hover:bg-[#1B1E31]/80 py-3.5 rounded-xl border border-white/5 hover:border-yellow-400/50 transition duration-300 tracking-widest uppercase">
+        <i class="fas fa-arrow-down mr-1"></i> Load More Targets...
+    </button>
+</div>
+
+<script>
+    window.safeRunSection('targets', function() {
+        window.targetRenderLimit = 20;
+        window.selectedUserFilter = 'all';
+        window.deleteUidHolder = null;
+        let globalTimerInterval = null;
+
+        window.fetchTargets = async function() {
+            try {
+                let res = await fetch('/api/targets'); 
+                if (res.status === 401) { 
+                    window.location.reload(); 
+                    return; 
+                }
+                window.allTargets = await res.json(); 
+                await populateUserFilter();
+                renderTargets(); 
+            } catch(e) {
+                console.error("Failed to fetch targets:", e);
+            }
+        };
+
+        window.populateUserFilter = async function() {
+            const list = document.getElementById('userFilterList');
+            const summaryContainer = document.getElementById('target-summary-container');
+            if(!list || !summaryContainer) return;
+
+            try {
+                let res = await fetch('/api/user_stats');
+                if (res.status === 401) { window.location.reload(); return; }
+                let userStats = await res.json();
+                
+                let html = `<div onclick="window.selectUserFilter('all', 'All Users')" class="px-4 py-3 hover:bg-[#232736] cursor-pointer text-sm font-bold text-white border-b border-white/5 transition">All Users</div>`;
+                let summaryHtml = `<div class="text-[10px] font-black text-gray-500 w-full mb-2 uppercase tracking-widest"><i class="fas fa-chart-bar text-yellow-400 mr-1"></i> Active Targets Usage Breakdown</div><div class="flex flex-wrap gap-2 w-full">`;
+
+                for(let username in userStats) {
+                    let u = userStats[username];
+                    if (!u) continue; 
+                    
+                    let uName = u.name || username;
+                    let uLimit = parseInt(u.limit) || 0;
+                    let uActive = parseInt(u.active) || 0;
+                    let uRole = u.role || 'admin';
+                    let remainingDisplay = uRole === 'owner' ? '∞' : (uLimit - uActive);
+                    
+                    let infoStr = uRole === 'owner' 
+                        ? `<span class="text-yellow-400 font-black">Added: ${uActive} | Owner</span>` 
+                        : `<span class="text-gray-500 font-bold">Added: <span class="text-white font-black">${uActive}</span> | Left: <span class="${remainingDisplay > 0 ? 'text-emerald-400' : 'text-rose-500'} font-black">${remainingDisplay}</span></span>`;
+
+                    html += `<div onclick="window.selectUserFilter('${username}', '${uName}')" class="px-4 py-3 hover:bg-[#232736] cursor-pointer text-sm font-bold text-gray-400 hover:text-white transition flex justify-between items-center">
+                        <span>${uName}</span>
+                        <span class="text-[10px] font-mono font-bold">${infoStr}</span>
+                    </div>`;
+
+                    let badgeColor = uRole === 'owner' ? 'border-yellow-400/50 bg-yellow-400/10 text-yellow-400' : 'border-emerald-400/50 bg-emerald-400/10 text-emerald-400';
+                    summaryHtml += `
+                        <div class="border ${badgeColor} px-3 py-2 rounded-xl flex items-center gap-2 text-xs font-bold cursor-pointer hover:bg-black/20 transition shadow-lg" onclick="window.selectUserFilter('${username}', '${uName}')">
+                            <span class="text-white game-font truncate max-w-[100px]">${uName}</span>
+                            <span class="bg-black/50 px-1.5 py-0.5 rounded font-mono">${uActive} / ${uRole === 'owner' ? '∞' : uLimit}</span>
+                        </div>
+                    `;
+                }
+                summaryHtml += `</div>`;
+                list.innerHTML = html; 
+                summaryContainer.innerHTML = summaryHtml;
+            } catch(e) {
+                console.error("Populate User filter failed:", e);
+            }
+        };
+
+        window.toggleUserSummary = function() {
+            const container = document.getElementById('target-summary-container');
+            const text = document.getElementById('summary-toggle-text');
+            const icon = document.getElementById('summary-toggle-icon');
+            if(!container) return;
+
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                if(text) text.innerText = "Hide Users Target Summary";
+                if(icon) icon.className = "fas fa-chevron-up text-yellow-400";
+            } else {
+                container.classList.add('hidden');
+                if(text) text.innerText = "Show Users Target Summary";
+                if(icon) icon.className = "fas fa-chevron-down";
+            }
+        };
+
+        window.selectUserFilter = function(username, name) {
+            window.selectedUserFilter = username;
+            document.getElementById('userFilterText').innerText = name;
+            document.getElementById('userFilterDropdown').classList.add('hidden');
+            window.targetRenderLimit = 20; 
+            renderTargets();
+        };
+
+        window.renderTargets = function() {
+            const grid = document.getElementById('targets-grid');
+            const loadMoreBtn = document.getElementById('targets-load-more');
+            if(!grid) return;
+
+            let term = document.getElementById('searchInput').value.toLowerCase().trim();
+            const targetsData = window.allTargets || [];
+            const activeFilter = window.selectedUserFilter || 'all';
+
+            let filtered = targetsData.filter(t => {
+                if(!t) return false;
+                let uidStr = String(t.uid || "");
+                let nameStr = String(t.name || "").toLowerCase();
+                let matchTerm = uidStr.includes(term) || nameStr.includes(term);
+                let matchUser = activeFilter === 'all' || String(t.addedByUsername || "").toLowerCase().trim() === String(activeFilter).toLowerCase().trim();
+                return matchTerm && matchUser;
+            });
+            
+            filtered.sort((a, b) => (b.addTime || 0) - (a.addTime || 0));
+            let paginated = filtered.slice(0, window.targetRenderLimit);
+
+            if (paginated.length < filtered.length) {
+                loadMoreBtn.classList.remove('hidden');
+            } else {
+                loadMoreBtn.classList.add('hidden');
+            }
+
+            if(paginated.length === 0) { 
+                grid.innerHTML = '<div class="col-span-full p-10 text-center text-gray-500 font-bold bg-[#1B1E31]/40 border border-white/5 rounded-2xl">No targets found.</div>'; 
+                loadMoreBtn.classList.add('hidden');
+                return; 
+            }
+
+            // CRITICAL DYNAMICS: Sort and index Web Targets consecutively on-the-fly to fill any deletion gaps
+            let sortedWebTargets = targetsData.filter(x => !String(x.id).startsWith('auto_'));
+            sortedWebTargets.sort((a, b) => (a.addTime || 0) - (b.addTime || 0));
+
+            grid.innerHTML = paginated.map(t => {
+                const hPicSrc = `https://cdn.jsdelivr.net/gh/ShahGCreator/icon@main/PNG/${t.headPic || '902000003'}.png`;
+                const reasonHtml = t.reason ? `<div class="text-black bg-yellow-400 font-bold text-[9px] uppercase px-1.5 py-0.5 rounded shadow truncate w-full max-w-[90px]" title="${t.reason}">R: ${t.reason}</div>` : '<div></div>';
+                
+                let isOwner = currentUser && currentUser.role === 'owner';
+                let isAddedByUser = currentUser && t.addedByUsername === currentUser.username;
+                let isAuto = String(t.id).startsWith('auto_');
+                let canDelete = isOwner || isAddedByUser || isAuto;
+                
+                let roleColor = t.addedByRole === 'owner' ? 'text-yellow-400' : 'text-emerald-400';
+                let addedByDisplay = t.addedByName || 'System';
+                
+                if (isAuto) {
+                    let slotNum = String(t.id).split('_')[1];
+                    addedByDisplay = `Slot #${slotNum}`;
+                    roleColor = 'text-cyan-400';
+                } else {
+                    // Match and fetch consecutive index badge for web targets
+                    let idx = sortedWebTargets.findIndex(x => String(x.uid).trim() === String(t.uid).trim());
+                    if (idx !== -1) {
+                        addedByDisplay = `Web #${idx + 1}`;
+                        roleColor = 'text-yellow-400';
+                    }
+                }
+                
+                let deleteBtnHtml = canDelete ? 
+                    `<button onclick="window.deleteUidHolder='${t.uid}'; const dm = document.getElementById('delete-modal'); if(dm){ dm.classList.remove('hidden'); dm.classList.add('flex'); }" class="p-1.5 rounded-lg bg-[#1f2231]/80 border border-white/5 text-rose-400 hover:bg-rose-500 hover:text-white transition shadow"><i class="fas fa-trash text-sm"></i></button>` :
+                    `<button disabled class="p-1.5 rounded-lg bg-[#1f2231]/80 border border-white/5 text-gray-600 cursor-not-allowed" title="You cannot delete this target"><i class="fas fa-ban text-sm"></i></button>`;
+
+                let statusBadge = '';
+                if(t.status === 'Paused (Need Bots)') {
+                    statusBadge = `<div class="absolute top-1.5 left-1/2 transform -translate-x-1/2 bg-rose-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded shadow-lg animate-pulse uppercase tracking-widest z-20"><i class="fas fa-pause mr-1"></i>PAUSED</div>`;
+                } else {
+                    statusBadge = `<div class="absolute top-1.5 left-1/2 transform -translate-x-1/2 bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 text-[9px] font-black px-2.5 py-0.5 rounded shadow uppercase tracking-widest z-20">ACTIVE</div>`;
+                }
+
+                const rarity = window.getAvatarRarityColor(t.headPic);
+
+                return `
+                <div class="relative glass-card rounded-2xl overflow-hidden flex flex-col font-sans mb-1">
+                    ${statusBadge}
+                    <div class="h-8 bg-[#11131a]/60 border-b border-white/5 flex justify-between items-center px-3 relative">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-yellow-400"></div>
+                        <div class="ml-2 text-yellow-400 font-black italic tracking-widest text-[9px] uppercase">FREE FIRE <span class="text-white">MAX</span></div>
+                        <div class="text-gray-400 text-[9px] font-mono">By: <span class="${roleColor} font-black text-[10px] tracking-wider uppercase">${addedByDisplay}</span></div>
+                    </div>
+                    <div class="p-3.5 flex gap-4 relative bg-gradient-to-r from-[#1f2231]/30 to-[#151720]/30">
+                        <div class="absolute top-0 left-0 bottom-0 w-6 bg-yellow-400" style="clip-path: polygon(0 0, 100% 0, 0% 100%, 0 100%);"></div>
+                        <div class="relative z-10 flex flex-col items-center ml-2 cursor-pointer hover:scale-105 transition-transform" onclick="viewGenericProfile('${t.uid}', 'Target Profile')" title="View Profile">
+                            <div class="w-[70px] h-[70px] rounded-xl border-[3px] ${rarity.border} ${rarity.glow} bg-black p-0.5 relative overflow-hidden">
+                                <img src="${hPicSrc}" class="w-full h-full object-cover rounded-lg">
+                            </div>
+                            <div class="${rarity.text} text-[10px] font-black mt-1">Lv. ${t.level || 0}</div>
+                        </div>
+                        
+                        <div class="relative z-10 flex-1 flex flex-col justify-start min-w-0">
+                            <div class="flex items-center gap-1.5 mb-0.5">
+                                <span class="text-cyan-400 text-sm font-black leading-none">♂</span>
+                                <span class="text-sm font-black text-white tracking-wide game-font truncate">${t.name}</span>
+                            </div>
+                            <div class="text-yellow-400 text-[9px] font-bold truncate mb-1"><i class="fas fa-shield-alt text-gray-500"></i> ${t.guild || 'No Guild'}</div>
+                            
+                            <div class="text-right mt-auto flex justify-between items-end">
+                                <div class="text-[10px] text-gray-500 font-mono cursor-pointer hover:text-white transition" onclick="copyToClipboard('${t.uid}', this)" title="Click to Copy UID">UID: <span class="text-white font-bold">${t.uid}</span></div>
+                                <div class="text-white text-xs font-black flex items-center gap-1"><i class="fas fa-thumbs-up text-gray-400 text-xs"></i> ${t.liked || 0}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-[#11131a]/60 grid grid-cols-3 items-center px-3 py-2 border-t border-white/5">
+                        <div class="flex justify-start items-center">${reasonHtml}</div>
+                        <div class="flex items-center justify-center gap-3">
+                            <button onclick="viewGenericProfile('${t.uid}', 'Target Profile')" class="p-1.5 rounded-lg bg-[#1f2231]/85 border border-white/5 text-blue-400 hover:bg-blue-500 hover:text-white transition shadow" title="View Profile"><i class="fas fa-eye text-sm"></i></button>
+                            ${deleteBtnHtml}
+                        </div>
+                        <div class="flex justify-end items-center">
+                            <span class="countdown-cell font-mono font-black text-[9px] text-fuchsia-400 bg-fuchsia-900/10 border border-fuchsia-800/30 px-2 py-0.5 rounded" data-expire="${t.expireAt}">${formatTimeLeft(t.expireAt)}</span>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            if(globalTimerInterval) clearInterval(globalTimerInterval);
+            globalTimerInterval = setInterval(() => { 
+                document.querySelectorAll('.countdown-cell').forEach(c => { 
+                    const exp = c.getAttribute('data-expire'); 
+                    if(exp !== 'permanent') c.innerHTML = formatTimeLeft(exp); 
+                }); 
+            }, 1000);
+        };
+
+        window.loadMoreTargets = function() {
+            window.targetRenderLimit += 20;
+            renderTargets();
+        };
+
+        window.deleteTarget = async function() {
+            const uidToDelete = window.deleteUidHolder;
+            if(!uidToDelete) return;
+            
+            const dm = document.getElementById('delete-modal');
+            if (dm) {
+                dm.classList.add('hidden');
+                dm.classList.remove('flex');
+            }
+
+            try {
+                let res = await fetch('/api/target/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({uid: uidToDelete}) });
+                let data = await res.json();
+                if (data.success) {
+                    showPopup("Success", "Target protocol stopped cleanly.", "success");
+                    fetchTargets(); 
+                    fetchDashboard();
+                } else {
+                    showPopup("Error Deleting", data.msg, "error");
+                }
+            } catch(e) {
+                showPopup("Network Error", "Could not process request.", "error");
+            }
+        };
+
+        window.formatTimeLeft = function(expireTime) {
+            if(expireTime === 'permanent') return '∞ PERMANENT';
+            const diff = parseInt(expireTime) - Date.now();
+            if(diff <= 0) return 'EXPIRED';
+            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const h = Math.floor((diff / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+            const m = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
+            const s = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
+            return `${d}D ${h}:${m}:${s}`;
+        };
+
+        window.addEventListener('tabSwitched', function(e) {
+            if (e.detail.tab === 'targets') {
+                fetchTargets();
+            }
+        });
+
+        fetchTargets();
+    });
+</script>
+<!-- END OF FILE templates/sections/targets.html -->

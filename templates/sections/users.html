@@ -1,0 +1,66 @@
+<!-- START OF FILE templates/sections/users.html -->
+<div class="flex justify-between items-center bg-[#1B1E31]/40 border border-white/5 p-4 rounded-2xl shadow-lg mb-6">
+    <h2 class="text-xl font-black text-white uppercase tracking-widest flex items-center gap-2"><i class="fas fa-users text-emerald-400"></i> User Management</h2>
+    <button onclick="openUserModal()" class="bg-emerald-500 hover:bg-emerald-400 text-white font-black px-4 py-2 rounded-lg shadow-lg transition text-sm">
+        + NEW USER
+    </button>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="users-grid">
+    <!-- Loaded via JS -->
+</div>
+
+<script>
+    window.safeRunSection('users', function() {
+        window.fetchUsers = async function() {
+            try {
+                let res = await fetch('/api/users');
+                let users = await res.json();
+                let html = '';
+                users.forEach(u => {
+                    let roleColor = u.role === 'owner' ? 'border-yellow-400' : 'border-emerald-400';
+                    html += `
+                    <div class="bg-[#1b1e2b]/80 border border-white/5 rounded-2xl p-5 relative overflow-hidden shadow-lg">
+                        <div class="absolute top-0 right-0 bg-gray-800 text-[10px] text-white font-bold px-3 py-1 rounded-bl-lg uppercase">${u.role}</div>
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-12 h-12 rounded-full bg-black border-2 ${roleColor} overflow-hidden shadow-lg">
+                                <img src="https://cdn.jsdelivr.net/gh/ShahGCreator/icon@main/PNG/${u.pic || '902000003'}.png" class="w-full h-full object-cover">
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-base font-black text-white game-font truncate">${u.name || 'Unknown User'}</div>
+                                <div class="text-[10px] text-gray-500 font-mono mt-0.5">@${u.username} &nbsp;|&nbsp; Limit: <span class="text-white font-bold">${u.role === 'owner' ? '∞' : u.limit}</span></div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openUserModal('${u.username}', '${u.password}', '${u.name || ''}', '${u.pic || '902000003'}', ${u.limit}, '${u.role}')" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 rounded-lg text-xs transition"><i class="fas fa-edit"></i> Edit</button>
+                            ${u.username === 'owner' || u.username === currentUser.username ? '' : `<button onclick="deleteUser('${u.username}')" class="flex-1 bg-rose-600/20 text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-500/30 font-bold py-2 rounded-lg text-xs transition"><i class="fas fa-trash"></i> Delete</button>`}
+                        </div>
+                    </div>`;
+                });
+                document.getElementById('users-grid').innerHTML = html;
+            } catch(e) {
+                console.error("fetchUsers failed:", e);
+            }
+        };
+
+        window.deleteUser = async function(username) {
+            if(!confirm(`Delete user ${username}?`)) return;
+            try {
+                await fetch('/api/users/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username}) });
+                fetchUsers();
+            } catch(e) {
+                console.error("Failed to delete user:", e);
+            }
+        };
+
+        window.addEventListener('tabSwitched', function(e) {
+            if (e.detail.tab === 'users_tab') {
+                fetchUsers();
+            }
+        });
+
+        // Initialize Users list
+        fetchUsers();
+    });
+</script>
+<!-- END OF FILE templates/sections/users.html -->
