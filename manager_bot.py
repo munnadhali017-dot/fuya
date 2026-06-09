@@ -191,7 +191,7 @@ def set_maintenance(status, duration_secs=0):
 
 def start_process(script_name):
     print(f"[+] Starting {script_name}...")
-    return subprocess.Popen([sys.executable, script_name])
+    return subprocess.Popen([sys.executable, '-u', script_name])
 
 def stop_process(proc, script_name):
     if proc and proc.poll() is None:
