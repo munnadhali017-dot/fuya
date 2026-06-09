@@ -84,15 +84,25 @@ def Update_Bot_Status(bot_id, status_msg, uid="Unknown", nickname="Unknown", vv_
             "Game uid": uid
         }
 
+# ========================================================
+# 🚀 SECURED LINUX ATOMIC SWAP LIVE STATUS WRITER
+# ========================================================
 def Live_Status_Writer():
     while True:
         try:
             with STATUS_LOCK:
                 data_to_save = BOT_STATUS_DATA.copy()
-            with open(LIVE_STATUS_FILE, "w") as f:
+            
+            temp_file = LIVE_STATUS_FILE + ".tmp"
+            # Write to temporary file first
+            with open(temp_file, "w", encoding='utf-8') as f:
                 json.dump(data_to_save, f, indent=4)
-        except: pass
-        time.sleep(10) 
+                
+            # Perform Atomic Swap in Linux (Guarantees zero-collision reads by app.py)
+            os.replace(temp_file, LIVE_STATUS_FILE)
+        except Exception as e:
+            pass
+        time.sleep(4) # Writes status updates every 4 seconds stably
 
 def ResTarTinG():
     print('\n [System] Restarting System Internally... ! ')
@@ -207,6 +217,7 @@ class FF_CLient:
                 self.writer2.write(bytes.fromhex(tok))
                 await self.writer2.drain()
                 
+                # Success online & attacking status write
                 Update_Bot_Status(self.bot_id, "✅ Online & Attacking", bot_uid, self.nickname, self.vv_key)
                 disconnect_count = 0 
                 
@@ -405,7 +416,8 @@ class FF_CLient:
 
     async def Get_FiNal_ToKen_0115(self, U, P):
         for attempt in range(1, 4):
-            print(f"[Bot #{self.bot_id}] ⏳ Trying Login ({attempt}/3)...")
+            # Phase 2: Status write "Logging In"
+            Update_Bot_Status(self.bot_id, "⏳ Logging In...", "Unknown", "Unknown", U)
             res = await self.ToKen_GeneRaTe(U, P)
             if res:
                 token, key, iv, ts, ip, port, ip2, port2, bot_uid, nickname = res
@@ -417,6 +429,9 @@ class FF_CLient:
                 print(f"👤 NAME: {self.nickname}") 
                 print(f"🆔 UID : {self.bot_uid}")  
                 print("="*50)
+                
+                # Phase 3: Status write "Connecting to gameplay socket"
+                Update_Bot_Status(self.bot_id, "⏳ Connecting to Socket...", bot_uid, nickname, U)
                 
                 acc_id = jwt.decode(token, options={"verify_signature": False}).get("account_id")
                 enc_acc = hex(acc_id)[2:]
@@ -490,6 +505,10 @@ async def VV_Watcher_Async():
                         bot_id_counter += 1
                         new_bot = FF_CLient(u, p, bot_id_counter)
                         TOTAL_BOTS_DICT[u] = new_bot
+                        
+                        # Phase 1: Status write "Booting..."
+                        Update_Bot_Status(bot_id_counter, "⏳ Booting...", "Unknown", "Unknown", u)
+                        
                         asyncio.create_task(new_bot.Get_FiNal_ToKen_0115(u, p))
                         await asyncio.sleep(0.5) 
                         
